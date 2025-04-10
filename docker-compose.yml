@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  # Python backend service
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: zerodha-backend
+    restart: unless-stopped
+    volumes:
+      - ./src:/app/src
+      - ./config:/app/config
+      - ./data:/app/data
+    env_file:
+      - .env
+    depends_on:
+      - influxdb
+    networks:
+      - zerodha-network
+
+  # InfluxDB time-series database
+  influxdb:
+    image: influxdb:2.7
+    container_name: zerodha-influxdb
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+    env_file:
+      - .env
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=${INFLUXDB_USERNAME}
+      - DOCKER_INFLUXDB_INIT_PASSWORD=${INFLUXDB_PASSWORD}
+      - DOCKER_INFLUXDB_INIT_ORG=${INFLUXDB_ORG}
+      - DOCKER_INFLUXDB_INIT_BUCKET=${INFLUXDB_BUCKET}
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUXDB_TOKEN}
+    networks:
+      - zerodha-network
+
+  # Grafana visualization
+  grafana:
+    image: grafana/grafana:10.1.0
+    container_name: zerodha-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./config/grafana/provisioning:/etc/grafana/provisioning
+      - ./config/grafana/dashboards:/etc/grafana/dashboards
+    env_file:
+      - .env
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USERNAME}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    depends_on:
+      - influxdb
+    networks:
+      - zerodha-network
+
+volumes:
+  influxdb-data:
+  grafana-data:
+
+networks:
+  zerodha-network:
+    driver: bridge 
