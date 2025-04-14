@@ -159,7 +159,7 @@
             "type": "influxdb",
             "uid": "P5697886F9CA74929"
           },
-          "query": "from(bucket: \"trading_data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"pnl\")\n  |> filter(fn: (r) => r._field == \"unrealized_pnl\" or r._field == \"realized_pnl\" or r._field == \"day_pnl\")\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)\n  |> yield(name: \"mean\")",
+          "query": "from(bucket: \"zerodha_data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"pnl\")\n  |> filter(fn: (r) => r._field == \"unrealized_pnl\" or r._field == \"realized_pnl\" or r._field == \"day_pnl\")\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)\n  |> yield(name: \"mean\")",
           "refId": "A"
         }
       ]
@@ -229,7 +229,7 @@
             "type": "influxdb",
             "uid": "P5697886F9CA74929"
           },
-          "query": "from(bucket: \"trading_data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"margins_snapshot\")\n  |> filter(fn: (r) => r._field == \"utilization_percent\")\n  |> last()",
+          "query": "from(bucket: \"zerodha_data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"margins_snapshot\")\n  |> filter(fn: (r) => r._field == \"utilization_percent\")\n  |> last()",
           "refId": "A"
         }
       ]
@@ -299,7 +299,7 @@
             "type": "influxdb",
             "uid": "P5697886F9CA74929"
           },
-          "query": "from(bucket: \"trading_data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"pnl\")\n  |> filter(fn: (r) => r._field == \"current_drawdown\")\n  |> filter(fn: (r) => r.type == \"intraday\")\n  |> last()",
+          "query": "from(bucket: \"zerodha_data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"pnl\")\n  |> filter(fn: (r) => r._field == \"current_drawdown\")\n  |> filter(fn: (r) => r.type == \"intraday\")\n  |> last()",
           "refId": "A"
         }
       ]
@@ -481,7 +481,7 @@
             "type": "influxdb",
             "uid": "P5697886F9CA74929"
           },
-          "query": "import \"influxdata/influxdb/schema\"\n\nfrom(bucket: \"trading_data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"positions_snapshot\")\n  |> filter(fn: (r) => r._field == \"quantity\" or r._field == \"average_price\" or r._field == \"last_price\" or r._field == \"unrealized_pnl\")\n  |> last()\n  |> schema.fieldsAsCols()\n  |> map(fn: (r) => ({\r\n    _time: r._time,\r\n    _value: 1,\r\n    _measurement: \"position_table\",\r\n    Symbol: r.tradingsymbol,\r\n    Exchange: r.exchange,\r\n    Quantity: r.quantity,\r\n    \"Average Price\": r.average_price,\r\n    \"Last Price\": r.last_price,\r\n    PNL: r.unrealized_pnl\r\n  }))",
+          "query": "import \"influxdata/influxdb/schema\"\n\nfrom(bucket: \"zerodha_data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"positions_snapshot\")\n  |> filter(fn: (r) => r._field == \"quantity\" or r._field == \"average_price\" or r._field == \"last_price\" or r._field == \"unrealized_pnl\")\n  |> last()\n  |> schema.fieldsAsCols()\n  |> map(fn: (r) => ({\r\n    _time: r._time,\r\n    _value: 1,\r\n    _measurement: \"position_table\",\r\n    Symbol: r.tradingsymbol,\r\n    Exchange: r.exchange,\r\n    Quantity: r.quantity,\r\n    \"Average Price\": r.average_price,\r\n    \"Last Price\": r.last_price,\r\n    PNL: r.unrealized_pnl\r\n  }))",
           "refId": "A"
         }
       ]
@@ -586,7 +586,7 @@
             "type": "influxdb",
             "uid": "P5697886F9CA74929"
           },
-          "query": "from(bucket: \"trading_data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"orders_snapshot\")\n  |> pivot(rowKey:[\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> map(fn: (r) => ({\r\n    _time: r._time,\r\n    _value: 1,\r\n    _measurement: \"orders_table\",\r\n    Symbol: r.tradingsymbol,\r\n    Status: r.status,\r\n    Type: r.order_type,\r\n    \"Tr. Type\": r.transaction_type,\r\n    Quantity: r.quantity,\r\n    Price: r.price,\r\n    \"Trigger Price\": r.trigger_price,\r\n    \"Filled Qty\": r.filled_quantity\r\n  }))",
+          "query": "from(bucket: \"zerodha_data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"orders_snapshot\")\n  |> pivot(rowKey:[\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> map(fn: (r) => ({\r\n    _time: r._time,\r\n    _value: 1,\r\n    _measurement: \"orders_table\",\r\n    Symbol: r.tradingsymbol,\r\n    Status: r.status,\r\n    Type: r.order_type,\r\n    \"Tr. Type\": r.transaction_type,\r\n    Quantity: r.quantity,\r\n    Price: r.price,\r\n    \"Trigger Price\": r.trigger_price,\r\n    \"Filled Qty\": r.filled_quantity\r\n  }))",
           "refId": "A"
         }
       ]
@@ -651,7 +651,7 @@
             "type": "influxdb",
             "uid": "P5697886F9CA74929"
           },
-          "query": "from(bucket: \"trading_data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"sector_exposure\")\n  |> filter(fn: (r) => r._field == \"value\")\n  |> last()",
+          "query": "from(bucket: \"zerodha_data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"sector_exposure\")\n  |> filter(fn: (r) => r._field == \"value\")\n  |> last()",
           "refId": "A"
         }
       ]
@@ -713,7 +713,7 @@
             "type": "influxdb",
             "uid": "P5697886F9CA74929"
           },
-          "query": "from(bucket: \"trading_data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"system_metrics\")\n  |> filter(fn: (r) => r._field == \"cpu_percent\" or r._field == \"memory_percent\" or r._field == \"disk_percent\")\n  |> last()",
+          "query": "from(bucket: \"zerodha_data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"system_metrics\")\n  |> filter(fn: (r) => r._field == \"cpu_percent\" or r._field == \"memory_percent\" or r._field == \"disk_percent\")\n  |> last()",
           "refId": "A"
         }
       ]
@@ -802,7 +802,7 @@
             "type": "influxdb",
             "uid": "P5697886F9CA74929"
           },
-          "query": "from(bucket: \"trading_data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"tick_rate\")\n  |> filter(fn: (r) => r._field == \"ticks_per_minute\" or r._field == \"instrument_count\")",
+          "query": "from(bucket: \"zerodha_data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"tick_rate\")\n  |> filter(fn: (r) => r._field == \"ticks_per_minute\" or r._field == \"instrument_count\")",
           "refId": "A"
         }
       ]

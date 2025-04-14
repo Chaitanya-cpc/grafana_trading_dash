@@ -1,0 +1,20 @@
+# Application Configuration File
+
+# Paths can be overridden here if needed
+application:
+  watchlist_path: /app/data/input/watchlist.csv
+  sector_map_path: /app/data/input/symbol_sector_map.csv
+  benchmark_symbol: NIFTY 50
+
+# Risk thresholds
+risk_thresholds:
+  margin_alert: 20
+  drawdown_alert: 5
+
+# Technical indicators configuration
+indicators:
+  timeframe: 5minute
+  rsi_period: 14
+  sma_periods:
+    - 20
+    - 50

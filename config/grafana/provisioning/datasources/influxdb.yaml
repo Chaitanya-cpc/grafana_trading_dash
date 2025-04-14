@@ -7,8 +7,8 @@ datasources:
     url: http://influxdb:8086
     jsonData:
       version: Flux
-      organization: "${INFLUXDB_ORG}"
-      defaultBucket: "${INFLUXDB_BUCKET}"
+      organization: "zerodha"
+      defaultBucket: "zerodha_data"
       tlsSkipVerify: true
     secureJsonData:
       token: "${INFLUXDB_TOKEN}" 
