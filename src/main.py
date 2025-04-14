@@ -3,7 +3,7 @@
 
 """
 Main Application Entry Point
-Initializes and starts the Zerodha Dashboard
+Initializes and coordinates all components of the Zerodha Dashboard
 """
 
 import os
@@ -23,7 +23,7 @@ from src.utils.config import Config
 from src.utils.file_reader import read_watchlist, read_sector_map
 from src.api.zerodha_api import ZerodhaAPI
 from src.api.websocket_client import WebSocketClient
-from src.db.influxdb_client import InfluxDBClient
+from src.database.influxdb_client import InfluxDBClient
 from src.models.state_manager import StateManager
 from src.alerts.telegram_alerter import TelegramAlerter
 from src.models.scheduler import initialize as init_scheduler, shutdown as shutdown_scheduler
@@ -77,8 +77,8 @@ def main():
         db_client = InfluxDBClient(
             url=config.get('influxdb.url'),
             token=config.get('influxdb.token'),
-            org=config.get('influxdb.org'),
-            bucket=config.get('influxdb.bucket')
+            org="zerodha",  # Fixed organization name per requirements
+            bucket="zerodha_data"  # Fixed bucket name per requirements
         )
         components["db_client"] = db_client
         print("Database client initialized")

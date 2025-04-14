@@ -29,10 +29,10 @@ class Config:
                 "totp_key": os.getenv("ZERODHA_TOTP_KEY")
             },
             "influxdb": {
-                "url": os.getenv("INFLUXDB_URL"),
+                "url": os.getenv("INFLUXDB_URL", "http://influxdb:8086"),
                 "token": os.getenv("INFLUXDB_TOKEN"),
-                "org": os.getenv("INFLUXDB_ORG"),
-                "bucket": os.getenv("INFLUXDB_BUCKET")
+                "org": "zerodha",  # Fixed organization name per requirements
+                "bucket": "zerodha_data"  # Fixed bucket name per requirements
             },
             "telegram": {
                 "bot_token": os.getenv("TELEGRAM_BOT_TOKEN"),
