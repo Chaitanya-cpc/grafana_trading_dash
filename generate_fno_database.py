@@ -204,22 +204,11 @@ class FNODatabaseGenerator:
         logger.info(f"Generated {len(self.summary_data)} summary records")
     
     def export_to_csv(self):
-        """Export data to CSV files."""
+        """Export summary data to CSV and clean up unnecessary files."""
         try:
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            
-            # Export detailed instruments data
-            detailed_filename = f'fno_instruments_{timestamp}.csv'
-            logger.info(f"Exporting detailed data to {detailed_filename}...")
-            
-            if self.instruments_data:
-                df_detailed = pd.DataFrame(self.instruments_data)
-                df_detailed.to_csv(detailed_filename, index=False)
-                logger.info(f"✅ Exported {len(self.instruments_data)} detailed records")
-            
-            # Export summary data
-            summary_filename = f'fno_summary_{timestamp}.csv'
-            logger.info(f"Exporting summary data to {summary_filename}...")
+            # Export only summary data (the one we actually need)
+            summary_filename = 'fno_summary_latest.csv'
+            logger.info(f"Exporting F&O summary data to {summary_filename}...")
             
             if self.summary_data:
                 df_summary = pd.DataFrame(self.summary_data)
@@ -228,20 +217,46 @@ class FNODatabaseGenerator:
                 df_summary.to_csv(summary_filename, index=False)
                 logger.info(f"✅ Exported {len(self.summary_data)} summary records")
             
-            # Also create "latest" versions without timestamp
-            if self.instruments_data:
-                df_detailed.to_csv('fno_instruments_latest.csv', index=False)
-            
-            if self.summary_data:
-                df_summary.to_csv('fno_summary_latest.csv', index=False)
+            # Clean up any existing timestamped or detailed CSV files
+            self._cleanup_old_csv_files()
             
             logger.info("✅ Export completed successfully!")
             
-            return detailed_filename, summary_filename
+            return summary_filename
             
         except Exception as e:
             logger.error(f"Error exporting to CSV: {e}")
-            return None, None
+            return None
+    
+    def _cleanup_old_csv_files(self):
+        """Remove old CSV files to keep only the summary file."""
+        try:
+            import glob
+            
+            # Patterns to match old CSV files
+            patterns_to_delete = [
+                'fno_instruments_*.csv',  # All detailed instrument files
+                'fno_summary_[0-9]*.csv', # Timestamped summary files
+            ]
+            
+            files_deleted = 0
+            for pattern in patterns_to_delete:
+                files = glob.glob(pattern)
+                for file in files:
+                    try:
+                        os.remove(file)
+                        files_deleted += 1
+                        logger.info(f"🗑️ Deleted old file: {file}")
+                    except Exception as e:
+                        logger.warning(f"Could not delete {file}: {e}")
+            
+            if files_deleted > 0:
+                logger.info(f"🧹 Cleaned up {files_deleted} old CSV files")
+            else:
+                logger.info("🧹 No old CSV files to clean up")
+                
+        except Exception as e:
+            logger.warning(f"Error during cleanup: {e}")
     
     def print_statistics(self):
         """Print summary statistics."""
@@ -315,20 +330,21 @@ def main():
         generator.process_instruments(instruments)
         
         # Export to CSV
-        detailed_file, summary_file = generator.export_to_csv()
+        summary_file = generator.export_to_csv()
         
-        if detailed_file and summary_file:
-            print(f"\n✅ Files generated successfully:")
-            print(f"   📄 Detailed: {detailed_file}")
-            print(f"   📋 Summary:  {summary_file}")
-            print(f"   🔄 Latest:   fno_instruments_latest.csv, fno_summary_latest.csv")
+        if summary_file:
+            print(f"\n✅ F&O Database generated successfully:")
+            print(f"   📋 File: {summary_file}")
+            print(f"   📊 Contains: Strike differences, lot sizes, expiry data")
+            print(f"   🧹 Old files automatically cleaned up")
         
         # Print statistics
         generator.print_statistics()
         
         print(f"\n💡 Usage Tips:")
-        print(f"   • Use 'fno_summary_latest.csv' for quick reference")
-        print(f"   • Use 'fno_instruments_latest.csv' for complete data")
+        print(f"   • Single file 'fno_summary_latest.csv' contains everything you need")
+        print(f"   • Use strike_difference column for option chain configurations")
+        print(f"   • Use lot_size column for position sizing calculations")
         print(f"   • Run this script monthly after options expiry")
         print(f"   • Import CSV into Excel/Google Sheets for analysis")
         

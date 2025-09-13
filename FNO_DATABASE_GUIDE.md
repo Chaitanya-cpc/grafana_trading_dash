@@ -15,12 +15,15 @@ python3 generate_fno_database.py
 
 ### Output Files
 
-The script generates 4 CSV files:
+The script generates a single clean CSV file:
 
-1. **`fno_instruments_YYYYMMDD_HHMMSS.csv`** - Complete detailed data (timestamped)
-2. **`fno_summary_YYYYMMDD_HHMMSS.csv`** - Summary by underlying (timestamped)
-3. **`fno_instruments_latest.csv`** - Latest detailed data (overwritten each run)
-4. **`fno_summary_latest.csv`** - Latest summary data (overwritten each run)
+**`fno_summary_latest.csv`** - Contains everything you need:
+- Strike differences (auto-calculated)
+- Lot sizes for position sizing  
+- Expiry dates for planning
+- Instrument counts for liquidity assessment
+
+**🧹 Auto-cleanup**: Old timestamped files are automatically deleted to keep your directory clean.
 
 ## 📊 CSV Structure
 
@@ -42,18 +45,14 @@ The script generates 4 CSV files:
 | `put_options_count`  | Number of put options                         |
 | `total_instruments`  | Total instruments for this underlying         |
 
-### Detailed CSV Columns
+### Key Data Points
 
-| Column             | Description                  |
-| ------------------ | ---------------------------- |
-| `instrument_token` | Unique instrument identifier |
-| `tradingsymbol`    | Full trading symbol          |
-| `name`             | Underlying name              |
-| `instrument_type`  | FUT/CE/PE                    |
-| `strike`           | Strike price (for options)   |
-| `lot_size`         | Lot size                     |
-| `expiry`           | Expiry date                  |
-| `exchange`         | Exchange                     |
+The single CSV file contains all essential F&O information:
+- **252 Underlyings** (NIFTY, BANKNIFTY, stocks, commodities)
+- **Auto-calculated strike differences** (50 for NIFTY, 100 for BANKNIFTY, etc.)
+- **Lot sizes** for accurate position sizing
+- **Expiry schedules** for strategy planning
+- **Instrument counts** for liquidity assessment
 
 ## 🔄 Schedule
 
@@ -84,13 +83,17 @@ The script generates 4 CSV files:
 ### For Option Chain Analysis
 
 ```python
-# Use the summary CSV to get strike differences
+# Use the single CSV file to get all F&O data
 import pandas as pd
 
 summary = pd.read_csv('fno_summary_latest.csv')
 nifty_data = summary[summary['name'] == 'NIFTY'].iloc[0]
-strike_diff = nifty_data['strike_difference']  # Should be 50
-lot_size = nifty_data['lot_size']  # Should be 50
+strike_diff = nifty_data['strike_difference']  # 50
+lot_size = nifty_data['lot_size']  # 50
+
+# Get data for any ticker
+reliance_strike = summary[summary['name'] == 'RELIANCE']['strike_difference'].iloc[0]  # 25
+banknifty_strike = summary[summary['name'] == 'BANKNIFTY']['strike_difference'].iloc[0]  # 100
 ```
 
 ### For Trading Applications
@@ -143,12 +146,13 @@ lot_size = nifty_data['lot_size']  # Should be 50
 
 ## 🎯 Integration
 
-Use the generated CSV files with:
+Use the single `fno_summary_latest.csv` file with:
 
-- **Excel/Google Sheets**: For manual analysis
-- **Python/Pandas**: For programmatic access
+- **Excel/Google Sheets**: For manual analysis and reference
+- **Python/Pandas**: For programmatic access to all F&O data
 - **Option Chain Module**: Update `config.json` with correct strike differences
-- **Trading Applications**: Reference for instrument metadata
+- **Trading Applications**: Single source of truth for all F&O metadata
+- **Position Sizing**: Use lot_size column for accurate calculations
 
 ---
 
