@@ -88,10 +88,18 @@ def main():
         print(f"👤 User ID: {session_data.get('user_id', 'N/A')}")
         
         login_time = session_data.get('login_time', 'N/A')
-        if 'instant' in login_time.lower() or 'saved token' in login_time.lower():
+        
+        # Handle different login_time types (string or datetime)
+        if isinstance(login_time, str):
+            login_time_str = login_time.lower()
+        else:
+            # If it's a datetime object, format it as string
+            login_time_str = str(login_time).lower() if login_time != 'N/A' else 'manual'
+        
+        if 'instant' in login_time_str or 'saved token' in login_time_str:
             print("⚡ Speed: INSTANT (saved token)")
             print("🤖 Intervention: ZERO")
-        elif 'automated' in login_time.lower():
+        elif 'automated' in login_time_str or 'browser' in login_time_str:
             print("🤖 Speed: AUTOMATED (30-60 seconds)")
             print("🤖 Intervention: ZERO")
         else:
@@ -122,27 +130,16 @@ def main():
         # Get authenticated Kite instance
         kite = auth.get_kite_instance()
         
-        # Initialize data analytics modules
-        from src.data_analytics import MarketDataFetcher, TechnicalIndicators, BacktestEngine
+        # Available modules ready for development
+        print("📊 Data Analytics Modules: Ready for development")
+        print("   • Option Chain Display: src/data_analytics/option_chain/")
+        print("   • Market Data Fetchers: Ready to implement")
+        print("   • Technical Indicators: Ready to implement")
         
-        data_fetcher = MarketDataFetcher(kite)
-        indicators = TechnicalIndicators()
-        backtest_engine = BacktestEngine(initial_capital=100000)
-        
-        print("✅ MarketDataFetcher initialized")
-        print("✅ TechnicalIndicators initialized") 
-        print("✅ BacktestEngine initialized")
-        
-        # Initialize execution modules
-        from src.execution import OrderManager, PortfolioManager, RiskManager
-        
-        order_manager = OrderManager(kite)
-        portfolio_manager = PortfolioManager(kite)
-        risk_manager = RiskManager(initial_capital=100000)
-        
-        print("✅ OrderManager initialized")
-        print("✅ PortfolioManager initialized")
-        print("✅ RiskManager initialized")
+        print("💼 Execution Modules: Ready for development")  
+        print("   • Order Management: Ready to implement")
+        print("   • Portfolio Management: Ready to implement")
+        print("   • Risk Management: Ready to implement")
         
         # Test basic API functionality
         print("\\n" + "-"*80)
