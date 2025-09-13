@@ -61,6 +61,42 @@ class Config:
         """Get log file path."""
         return os.getenv("LOG_FILE", "logs/zerodha_dashboard.log")
     
+    # Full automation credentials (optional)
+    @property
+    def zerodha_username(self) -> Optional[str]:
+        """Get Zerodha username for full automation."""
+        return os.getenv("ZERODHA_USERNAME")
+    
+    @property
+    def zerodha_password(self) -> Optional[str]:
+        """Get Zerodha password for full automation."""
+        return os.getenv("ZERODHA_PASSWORD")
+    
+    @property
+    def zerodha_pin(self) -> Optional[str]:
+        """Get Zerodha trading PIN for full automation."""
+        return os.getenv("ZERODHA_PIN")
+    
+    @property
+    def zerodha_totp_secret(self) -> Optional[str]:
+        """Get TOTP secret for 2FA automation."""
+        return os.getenv("ZERODHA_TOTP_SECRET")
+    
+    @property
+    def headless_browser(self) -> bool:
+        """Get headless browser setting."""
+        return os.getenv("HEADLESS_BROWSER", "false").lower() == "true"
+    
+    @property
+    def browser_timeout(self) -> int:
+        """Get browser timeout in seconds."""
+        return int(os.getenv("BROWSER_TIMEOUT", "30"))
+    
+    @property
+    def auto_login_enabled(self) -> bool:
+        """Check if full automation is enabled."""
+        return os.getenv("AUTO_LOGIN_ENABLED", "false").lower() == "true"
+    
     def validate(self) -> bool:
         """
         Validate that all required configuration is present.
@@ -77,6 +113,35 @@ class Config:
         except ValueError as e:
             logger.error(f"Configuration validation failed: {e}")
             return False
+    
+    def validate_full_automation(self) -> bool:
+        """
+        Validate that all credentials for full automation are present.
+        
+        Returns:
+            True if full automation is possible, False otherwise.
+        """
+        if not self.auto_login_enabled:
+            return False
+        
+        required_fields = [
+            ("ZERODHA_USERNAME", self.zerodha_username),
+            ("ZERODHA_PASSWORD", self.zerodha_password),
+            ("ZERODHA_PIN", self.zerodha_pin),
+            ("ZERODHA_TOTP_SECRET", self.zerodha_totp_secret)
+        ]
+        
+        missing_fields = []
+        for field_name, field_value in required_fields:
+            if not field_value:
+                missing_fields.append(field_name)
+        
+        if missing_fields:
+            logger.warning(f"Full automation disabled - missing fields: {', '.join(missing_fields)}")
+            return False
+        
+        logger.info("Full automation credentials validated successfully")
+        return True
 
 
 # Global configuration instance
