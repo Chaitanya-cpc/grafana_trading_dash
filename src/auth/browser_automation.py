@@ -312,7 +312,7 @@ class ZerodhaAutomatedLogin:
                     # Enter TOTP character by character for better reliability
                     for char in totp_code:
                         totp_field.send_keys(char)
-                        time.sleep(0.05)  # Reduced from 0.1 to 0.05 seconds
+                        time.sleep(0.025)  # Reduced by another 50% to 0.025 seconds
                     
                     logger.info("TOTP code entered successfully")
                     
@@ -353,8 +353,8 @@ class ZerodhaAutomatedLogin:
                     continue_button.click()
                     logger.info("2FA continue button clicked")
                     
-                    # Wait for page transition
-                    time.sleep(1.5)  # Reduced from 3 to 1.5 seconds
+                    # Wait for page transition and check for callback
+                    time.sleep(2)  # Wait 2 seconds to check for callback
                     
                     # Check if we moved to next page (success) or still on TOTP page (retry needed)
                     current_url = self.driver.current_url
