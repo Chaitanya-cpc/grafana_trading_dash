@@ -32,14 +32,14 @@ import pandas as pd
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
 from src.auth.kite_auth import KiteAuth
-from src.utils.logger import setup_logger
+from src.utils.logger import logger
 from src.utils.config import Config
 
-logger = setup_logger(__name__)
+# Logger is already configured in the imported module
 
 
 class OptionChainConfig:
-    """Configuration loader for option chain display."""
+    """Enhanced configuration loader for multi-instrument option chain display."""
     
     def __init__(self, config_file: str = None):
         """Load configuration from JSON file."""
@@ -60,46 +60,55 @@ class OptionChainConfig:
             return config
         except FileNotFoundError:
             logger.error(f"Configuration file {self.config_file} not found")
+            logger.info("Run: python3 config_generator.py to create configuration")
             raise
         except json.JSONDecodeError as e:
             logger.error(f"Invalid JSON in configuration file: {e}")
             raise
     
-    @property
-    def ticker_symbol(self) -> str:
-        return self.config.get("ticker_symbol", "NIFTY")
+    def get_active_instruments(self) -> List[str]:
+        """Get list of active instruments."""
+        active_instruments = []
+        instruments = self.config.get("instruments", {})
+        
+        for instrument_name, details in instruments.items():
+            if details.get("active", 0) == 1:
+                active_instruments.append(instrument_name)
+        
+        return active_instruments
     
-    @property
-    def strike_difference(self) -> int:
-        return self.config.get("strike_difference", 50)
+    def get_instrument_config(self, instrument_name: str) -> dict:
+        """Get configuration for a specific instrument."""
+        instruments = self.config.get("instruments", {})
+        if instrument_name not in instruments:
+            raise ValueError(f"Instrument {instrument_name} not found in configuration")
+        
+        return instruments[instrument_name]
     
-    @property
-    def strikes_above_atm(self) -> int:
-        return self.config.get("strikes_above_atm", 3)
-    
-    @property
-    def strikes_below_atm(self) -> int:
-        return self.config.get("strikes_below_atm", 3)
-    
+    # Display settings properties
     @property
     def refresh_interval_seconds(self) -> int:
-        return self.config.get("refresh_interval_seconds", 10)
-    
-    @property
-    def window_title(self) -> str:
-        return self.config.get("window_title", "Live Option Chain - Zerodha")
+        return self.config.get("display_settings", {}).get("refresh_interval_seconds", 10)
     
     @property
     def window_width(self) -> int:
-        return self.config.get("window_width", 1200)
+        return self.config.get("display_settings", {}).get("window_width", 1400)
     
     @property
     def window_height(self) -> int:
-        return self.config.get("window_height", 600)
+        return self.config.get("display_settings", {}).get("window_height", 700)
+    
+    @property
+    def strikes_above_atm(self) -> int:
+        return self.config.get("display_settings", {}).get("strikes_above_atm", 3)
+    
+    @property
+    def strikes_below_atm(self) -> int:
+        return self.config.get("display_settings", {}).get("strikes_below_atm", 3)
     
     @property
     def colors(self) -> dict:
-        return self.config.get("colors", {})
+        return self.config.get("display_settings", {}).get("colors", {})
 
 
 class OptionData:
@@ -120,14 +129,20 @@ class OptionData:
 
 
 class OptionChainGUI:
-    """GUI class for displaying live option chain data."""
+    """GUI class for displaying live option chain data for a specific instrument."""
     
-    def __init__(self, config: OptionChainConfig, kite_instance):
+    def __init__(self, config: OptionChainConfig, kite_instance, instrument_name: str):
         self.config = config
         self.kite = kite_instance
+        self.instrument_name = instrument_name
+        self.instrument_config = config.get_instrument_config(instrument_name)
+        
+        # GUI components
         self.root = None
         self.tree = None
         self.running = False
+        
+        # Data
         self.current_atm_strike = None
         self.option_data: List[OptionData] = []
         self.max_call_oi = 1
@@ -144,7 +159,7 @@ class OptionChainGUI:
     def _setup_gui(self):
         """Initialize the GUI window and components."""
         self.root = tk.Tk()
-        self.root.title(self.config.window_title)
+        self.root.title(self.instrument_config.get("window_title", f"Option Chain - {self.instrument_name}"))
         self.root.geometry(f"{self.config.window_width}x{self.config.window_height}")
         self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
         
@@ -158,11 +173,13 @@ class OptionChainGUI:
         main_frame.columnconfigure(0, weight=1)
         main_frame.rowconfigure(1, weight=1)
         
-        # Title label
+        # Title label with instrument info
+        strike_diff = self.instrument_config.get("strike_difference", 50)
+        lot_size = self.instrument_config.get("lot_size", 1)
         title_label = ttk.Label(
             main_frame, 
-            text=f"Live Option Chain - {self.config.ticker_symbol}",
-            font=("Arial", 16, "bold")
+            text=f"Live Option Chain - {self.instrument_name} | Strike Diff: {strike_diff} | Lot: {lot_size}",
+            font=("Arial", 14, "bold")
         )
         title_label.grid(row=0, column=0, pady=(0, 10))
         
@@ -201,19 +218,25 @@ class OptionChainGUI:
     def _get_current_price(self) -> Optional[float]:
         """Get current price of the underlying asset."""
         try:
-            # For NIFTY, we need to get the index price
-            if self.config.ticker_symbol == "NIFTY":
-                # Try to get NIFTY 50 index price
-                quote = self.kite.quote(["NSE:NIFTY 50"])
-                if quote and "NSE:NIFTY 50" in quote:
-                    return quote["NSE:NIFTY 50"]["last_price"]
+            # For indices, we need to get the index price
+            if self.instrument_name in ["NIFTY", "BANKNIFTY", "FINNIFTY"]:
+                index_map = {
+                    "NIFTY": "NSE:NIFTY 50",
+                    "BANKNIFTY": "NSE:NIFTY BANK", 
+                    "FINNIFTY": "NSE:NIFTY FIN SERVICE"
+                }
+                index_symbol = index_map.get(self.instrument_name)
+                if index_symbol:
+                    quote = self.kite.quote([index_symbol])
+                    if quote and index_symbol in quote:
+                        return quote[index_symbol]["last_price"]
             else:
                 # For stocks, get the stock price
-                quote = self.kite.quote([f"NSE:{self.config.ticker_symbol}"])
-                if quote and f"NSE:{self.config.ticker_symbol}" in quote:
-                    return quote[f"NSE:{self.config.ticker_symbol}"]["last_price"]
+                quote = self.kite.quote([f"NSE:{self.instrument_name}"])
+                if quote and f"NSE:{self.instrument_name}" in quote:
+                    return quote[f"NSE:{self.instrument_name}"]["last_price"]
             
-            logger.warning(f"Could not fetch price for {self.config.ticker_symbol}")
+            logger.warning(f"Could not fetch price for {self.instrument_name}")
             return None
             
         except Exception as e:
@@ -225,7 +248,7 @@ class OptionChainGUI:
         if current_price is None:
             return None
         
-        strike_diff = self.config.strike_difference
+        strike_diff = self.instrument_config.get("strike_difference", 50)
         # Round to nearest strike
         atm_strike = round(current_price / strike_diff) * strike_diff
         return atm_strike
@@ -233,7 +256,7 @@ class OptionChainGUI:
     def _generate_strike_list(self, atm_strike: float) -> List[float]:
         """Generate list of strikes to monitor."""
         strikes = []
-        strike_diff = self.config.strike_difference
+        strike_diff = self.instrument_config.get("strike_difference", 50)
         
         # Add strikes below ATM
         for i in range(self.config.strikes_below_atm, 0, -1):
@@ -251,22 +274,22 @@ class OptionChainGUI:
     def _get_option_instruments(self) -> Dict[str, dict]:
         """Get option instruments for the ticker."""
         try:
-            # Get all instruments
-            instruments = self.kite.instruments("NFO")  # NSE F&O segment
+            # Get all instruments from the exchange specified in config
+            exchange = self.instrument_config.get("exchange", "NFO")
+            instruments = self.kite.instruments(exchange)
             
             # Filter for current ticker options
             ticker_options = {}
-            current_month = datetime.now().strftime("%y%b").upper()
             
             for instrument in instruments:
-                if (instrument["name"] == self.config.ticker_symbol and 
+                if (instrument["name"] == self.instrument_name and 
                     instrument["instrument_type"] in ["CE", "PE"]):
                     
                     # Create a key for easy lookup
                     key = f"{instrument['strike']}_{instrument['instrument_type']}"
                     ticker_options[key] = instrument
             
-            logger.info(f"Found {len(ticker_options)} option instruments for {self.config.ticker_symbol}")
+            logger.info(f"Found {len(ticker_options)} option instruments for {self.instrument_name}")
             return ticker_options
             
         except Exception as e:
@@ -452,13 +475,21 @@ class OptionChainGUI:
 
 
 def main():
-    """Main function to run the option chain display."""
+    """Main function to run the option chain display for all active instruments."""
     try:
-        logger.info("Starting Basic Option Chain Display")
+        logger.info("Starting Multi-Instrument Option Chain Display")
         
         # Load configuration
         config = OptionChainConfig()
-        logger.info(f"Loaded configuration for {config.ticker_symbol}")
+        active_instruments = config.get_active_instruments()
+        
+        if not active_instruments:
+            print("❌ No active instruments found in configuration!")
+            print("💡 Edit config.json and set 'active': 1 for instruments you want to monitor")
+            print("🔧 Or run: python3 config_generator.py to regenerate configuration")
+            return False
+        
+        logger.info(f"Found {len(active_instruments)} active instruments: {', '.join(active_instruments)}")
         
         # Initialize authentication
         logger.info("Initializing Zerodha authentication...")
@@ -477,9 +508,45 @@ def main():
         kite = auth.get_kite_instance()
         logger.info("Authentication successful")
         
-        # Create and run GUI
-        gui = OptionChainGUI(config, kite)
-        gui.run()
+        print(f"\n🚀 Launching option chains for {len(active_instruments)} instruments...")
+        
+        if len(active_instruments) == 1:
+            # Single instrument - run directly in main thread
+            instrument = active_instruments[0]
+            try:
+                logger.info(f"Creating option chain for {instrument}")
+                gui = OptionChainGUI(config, kite, instrument)
+                print(f"✅ {instrument} - Option chain window opened")
+                print("🔄 Data refreshes every 10 seconds")
+                print("💡 Close window or press Ctrl+C to exit")
+                gui.run()
+                
+            except Exception as e:
+                logger.error(f"Error creating GUI for {instrument}: {e}")
+                print(f"❌ {instrument} - Failed to create option chain: {e}")
+                return False
+        
+        else:
+            # Multiple instruments - need special handling
+            print("⚠️  Multiple instrument display detected!")
+            print("💡 For best performance, activate only 1 instrument at a time")
+            print("🔧 Use: python3 manage_instruments.py to manage active instruments")
+            
+            # Run the first instrument for now
+            instrument = active_instruments[0]
+            print(f"🎯 Launching {instrument} (first active instrument)")
+            try:
+                logger.info(f"Creating option chain for {instrument}")
+                gui = OptionChainGUI(config, kite, instrument)
+                print(f"✅ {instrument} - Option chain window opened")
+                print("🔄 Data refreshes every 10 seconds")
+                print("💡 Close window or press Ctrl+C to exit")
+                gui.run()
+                
+            except Exception as e:
+                logger.error(f"Error creating GUI for {instrument}: {e}")
+                print(f"❌ {instrument} - Failed to create option chain: {e}")
+                return False
         
         return True
         

@@ -1,30 +1,74 @@
-# Option Chain Analysis Module
+# Multi-Instrument Option Chain Display
 
-A live, dynamically updating option chain display that shows real-time option data in a separate GUI window.
+A sophisticated, real-time option chain system that can display multiple instruments simultaneously, each in its own window. Built with data from your F&O database.
 
-## Features
+## 🚀 Key Features
 
-- **Live Data**: Real-time option prices and Open Interest (OI)
-- **ATM Detection**: Automatically identifies and highlights At-The-Money strikes
-- **Visual OI Bars**: Horizontal bar graphs showing relative OI levels
-- **Color Coding**: ITM strikes in red, OTM strikes in green
-- **Straddle Pricing**: Live calculation of call + put premiums
-- **Auto-refresh**: Updates every 10 seconds (configurable)
+- **📊 Multi-Instrument Support**: Monitor multiple instruments simultaneously
+- **🔥 Smart Configuration**: Auto-populated from F&O database with strike differences and lot sizes
+- **⚡ Live Data**: Real-time option prices and Open Interest (OI)
+- **🎯 ATM Detection**: Automatically identifies and highlights At-The-Money strikes
+- **📈 Visual OI Bars**: Horizontal bar graphs showing relative interest levels
+- **🌈 Color Coding**: ITM strikes in red, OTM strikes in green
+- **💰 Straddle Pricing**: Live calculation of call + put premiums
+- **🔄 Auto-refresh**: Updates every 10 seconds (configurable)
+- **🎛️ Easy Management**: Simple tools to activate/deactivate instruments
 
-## Configuration
+## 🎯 Quick Start
 
-Edit `config.json` in this directory to customize:
+### 1. Generate Configuration
+
+```bash
+# Generate config from F&O database (run this first!)
+python3 config_generator.py
+```
+
+### 2. Manage Active Instruments
+
+```bash
+# Check current status
+python3 manage_instruments.py status
+
+# Activate specific instruments
+python3 manage_instruments.py activate NIFTY BANKNIFTY
+
+# Interactive management
+python3 manage_instruments.py
+```
+
+### 3. Launch Option Chains
+
+```bash
+# Launch all active instruments
+python3 basic_option_chain.py
+```
+
+## 📋 Configuration Structure
+
+The `config.json` file contains:
 
 ```json
 {
-  "ticker_symbol": "NIFTY",
-  "strike_difference": 50,
-  "strikes_above_atm": 3,
-  "strikes_below_atm": 3,
-  "refresh_interval_seconds": 10,
-  "window_title": "Live Option Chain - Zerodha",
-  "window_width": 1200,
-  "window_height": 600
+  "metadata": {
+    "description": "Option Chain Configuration - Generated from F&O Database",
+    "total_instruments": 224
+  },
+  "display_settings": {
+    "refresh_interval_seconds": 10,
+    "window_width": 1400,
+    "window_height": 700,
+    "strikes_above_atm": 3,
+    "strikes_below_atm": 3
+  },
+  "instruments": {
+    "NIFTY": {
+      "active": 1, // 1 = active, 0 = inactive
+      "strike_difference": 50.0,
+      "lot_size": 75,
+      "exchange": "NFO",
+      "window_title": "Live Option Chain - NIFTY"
+    }
+  }
 }
 ```
 
