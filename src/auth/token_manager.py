@@ -42,12 +42,21 @@ class TokenManager:
             True if saved successfully.
         """
         try:
+            # Convert datetime objects to strings for JSON serialization
+            additional_data_clean = {}
+            if additional_data:
+                for key, value in additional_data.items():
+                    if isinstance(value, datetime):
+                        additional_data_clean[key] = value.isoformat()
+                    else:
+                        additional_data_clean[key] = value
+            
             token_data = {
                 "access_token": access_token,
                 "user_id": user_id,
                 "created_at": datetime.now().isoformat(),
                 "expires_at": self._calculate_expiry().isoformat(),
-                "additional_data": additional_data or {}
+                "additional_data": additional_data_clean
             }
             
             with open(self.token_file, 'w') as f:

@@ -171,21 +171,14 @@ class ZerodhaAutomatedLogin:
             # Wait for the page to load completely
             time.sleep(3)
             
-            # Wait for and fill username - try multiple selectors
-            username_selectors = ["#userid", "[name='user_id']", "input[placeholder*='User']"]
-            username_field = None
-            
-            for selector in username_selectors:
-                try:
-                    username_field = WebDriverWait(self.driver, 5).until(
-                        EC.presence_of_element_located((By.CSS_SELECTOR, selector))
-                    )
-                    break
-                except:
-                    continue
-            
-            if not username_field:
-                logger.error("Username field not found")
+            # Wait for and fill username using the correct XPath
+            try:
+                username_field = WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_element_located((By.XPATH, '//*[@id="userid"]'))
+                )
+                logger.info("Found username field using XPath")
+            except Exception as e:
+                logger.error(f"Username field not found with XPath: {e}")
                 return False
             
             username_field.clear()
@@ -193,19 +186,14 @@ class ZerodhaAutomatedLogin:
             username_field.send_keys(self.username)
             logger.info("Username entered")
             
-            # Fill password - try multiple selectors
-            password_selectors = ["#password", "[name='password']", "input[type='password']"]
-            password_field = None
-            
-            for selector in password_selectors:
-                try:
-                    password_field = self.driver.find_element(By.CSS_SELECTOR, selector)
-                    break
-                except:
-                    continue
-            
-            if not password_field:
-                logger.error("Password field not found")
+            # Fill password using XPath
+            try:
+                password_field = WebDriverWait(self.driver, 5).until(
+                    EC.presence_of_element_located((By.XPATH, '//*[@id="password"]'))
+                )
+                logger.info("Found password field using XPath")
+            except Exception as e:
+                logger.error(f"Password field not found with XPath: {e}")
                 return False
             
             password_field.clear()
@@ -216,25 +204,28 @@ class ZerodhaAutomatedLogin:
             # Wait a bit before clicking login
             time.sleep(1)
             
-            # Click login button - try multiple selectors
-            login_selectors = [
-                "button[type='submit']",
-                ".button-orange",
-                "[value='Login']",
-                "button:contains('Login')",
-                ".login-form button"
+            # Click login button using XPath (try common login button XPaths)
+            login_xpaths = [
+                "//button[@type='submit']",
+                "//input[@type='submit']",
+                "//button[contains(text(), 'Login')]",
+                "//*[@class='button-orange']",
+                "//form//button[1]"  # First button in form
             ]
             
             login_button = None
-            for selector in login_selectors:
+            for xpath in login_xpaths:
                 try:
-                    login_button = self.driver.find_element(By.CSS_SELECTOR, selector)
+                    login_button = WebDriverWait(self.driver, 5).until(
+                        EC.element_to_be_clickable((By.XPATH, xpath))
+                    )
+                    logger.info(f"Found login button using XPath: {xpath}")
                     break
                 except:
                     continue
             
             if not login_button:
-                logger.error("Login button not found")
+                logger.error("Login button not found with any XPath")
                 return False
             
             login_button.click()
@@ -260,34 +251,40 @@ class ZerodhaAutomatedLogin:
             logger.info("Waiting for 2FA page to load completely...")
             time.sleep(8)  # Increased from 3 to 8 seconds
             
-            # Try to find TOTP field with multiple selectors and longer waits
-            totp_selectors = [
-                "#totp", 
-                "[name='totp']", 
-                "input[placeholder*='TOTP']", 
-                "input[placeholder*='authenticator']",
-                "input[placeholder*='OTP']",
-                ".twofa-form input[type='text']",
-                ".twofa-form input[type='password']"
+            # Try to find TOTP field using XPaths (exact XPath first)
+            totp_xpaths = [
+                '/html/body/div[1]/div/div[2]/div[1]/div[2]/div/div[2]/form/div[1]/input',  # Exact XPath provided by user
+                '//*[@id="totp"]',
+                '//*[@name="totp"]', 
+                '//input[@placeholder="TOTP"]',
+                '//input[contains(@placeholder, "TOTP")]',
+                '//input[contains(@placeholder, "OTP")]',
+                '//input[contains(@placeholder, "authenticator")]',
+                '//input[@type="text" and contains(@class, "totp")]',
+                '//input[@type="password" and contains(@class, "totp")]',
+                '//form//input[@type="text"][2]',  # Second text input (after username)
+                '//div[contains(@class, "twofa")]//input'
             ]
             
-            totp_field = None
-            max_wait_time = 20  # Increased wait time
+            # Store the successful XPath for reuse
+            successful_totp_xpath = None
+            max_wait_time = 15  # Reasonable wait time
             
-            for selector in totp_selectors:
+            for xpath in totp_xpaths:
                 try:
-                    logger.info(f"Trying TOTP selector: {selector}")
+                    logger.info(f"Trying TOTP XPath: {xpath}")
                     totp_field = WebDriverWait(self.driver, max_wait_time).until(
-                        EC.element_to_be_clickable((By.CSS_SELECTOR, selector))
+                        EC.element_to_be_clickable((By.XPATH, xpath))
                     )
-                    logger.info(f"Found TOTP field with selector: {selector}")
+                    logger.info(f"Found TOTP field with XPath: {xpath}")
+                    successful_totp_xpath = xpath
                     break
                 except Exception as e:
-                    logger.debug(f"Selector {selector} failed: {e}")
+                    logger.debug(f"XPath {xpath} failed: {e}")
                     continue
             
-            if not totp_field:
-                logger.warning("TOTP field not found after trying all selectors")
+            if not successful_totp_xpath:
+                logger.warning("TOTP field not found after trying all XPaths")
                 # Take screenshot for debugging
                 try:
                     self.driver.save_screenshot("totp_page_debug.png")
@@ -303,6 +300,11 @@ class ZerodhaAutomatedLogin:
                     totp_code = self._generate_totp()
                     logger.info(f"Generated TOTP code (attempt {attempt + 1}): {totp_code}")
                     
+                    # Re-find the element to avoid stale element issues
+                    totp_field = WebDriverWait(self.driver, 5).until(
+                        EC.element_to_be_clickable((By.XPATH, successful_totp_xpath))
+                    )
+                    
                     # Clear field and wait
                     totp_field.clear()
                     time.sleep(1)  # Wait after clearing
@@ -317,25 +319,25 @@ class ZerodhaAutomatedLogin:
                     # Wait before clicking continue
                     time.sleep(2)  # Increased wait time
                     
-                    # Find and click continue button with better error handling
-                    continue_selectors = [
-                        "button[type='submit']",
-                        ".button-orange",
-                        "[value='Continue']",
-                        "button:contains('Continue')",
-                        ".twofa-form button",
-                        "form button",
-                        ".btn",
-                        ".button"
+                    # Find and click continue button with XPaths
+                    continue_xpaths = [
+                        "//button[@type='submit']",
+                        "//input[@type='submit']",
+                        "//button[contains(text(), 'Continue')]",
+                        "//input[@value='Continue']",
+                        "//*[@class='button-orange']",
+                        "//form//button",
+                        "//div[contains(@class, 'twofa')]//button",
+                        "//button[1]"  # First button on page
                     ]
                     
                     continue_button = None
-                    for selector in continue_selectors:
+                    for xpath in continue_xpaths:
                         try:
                             continue_button = WebDriverWait(self.driver, 5).until(
-                                EC.element_to_be_clickable((By.CSS_SELECTOR, selector))
+                                EC.element_to_be_clickable((By.XPATH, xpath))
                             )
-                            logger.info(f"Found continue button with selector: {selector}")
+                            logger.info(f"Found continue button with XPath: {xpath}")
                             break
                         except:
                             continue
@@ -393,15 +395,24 @@ class ZerodhaAutomatedLogin:
             # Wait for page transition
             time.sleep(3)
             
-            # Try to find PIN field with multiple selectors
-            pin_selectors = ["#pin", "[name='pin']", "input[placeholder*='PIN']", "input[type='password'][placeholder*='pin']"]
+            # Try to find PIN field with XPaths
+            pin_xpaths = [
+                '//*[@id="pin"]',
+                '//*[@name="pin"]', 
+                '//input[@placeholder="PIN"]',
+                '//input[contains(@placeholder, "PIN")]',
+                '//input[@type="password" and contains(@placeholder, "pin")]',
+                '//input[@type="password"][last()]'  # Last password field
+            ]
+            
             pin_field = None
             
-            for selector in pin_selectors:
+            for xpath in pin_xpaths:
                 try:
                     pin_field = WebDriverWait(self.driver, 10).until(
-                        EC.presence_of_element_located((By.CSS_SELECTOR, selector))
+                        EC.presence_of_element_located((By.XPATH, xpath))
                     )
+                    logger.info(f"Found PIN field with XPath: {xpath}")
                     break
                 except:
                     continue
