@@ -247,9 +247,9 @@ class ZerodhaAutomatedLogin:
         try:
             logger.info("Handling 2FA authentication...")
             
-            # Wait longer for page transition (important for slower connections)
+            # Wait for page transition (reduced by 50% for faster login)
             logger.info("Waiting for 2FA page to load completely...")
-            time.sleep(8)  # Increased from 3 to 8 seconds
+            time.sleep(4)  # Reduced from 8 to 4 seconds
             
             # Try to find TOTP field using XPaths (exact XPath first)
             totp_xpaths = [
@@ -307,17 +307,17 @@ class ZerodhaAutomatedLogin:
                     
                     # Clear field and wait
                     totp_field.clear()
-                    time.sleep(1)  # Wait after clearing
+                    time.sleep(0.5)  # Reduced from 1 to 0.5 seconds
                     
                     # Enter TOTP character by character for better reliability
                     for char in totp_code:
                         totp_field.send_keys(char)
-                        time.sleep(0.1)  # Small delay between characters
+                        time.sleep(0.05)  # Reduced from 0.1 to 0.05 seconds
                     
                     logger.info("TOTP code entered successfully")
                     
                     # Wait before clicking continue
-                    time.sleep(2)  # Increased wait time
+                    time.sleep(1)  # Reduced from 2 to 1 second
                     
                     # Find and click continue button with XPaths
                     continue_xpaths = [
@@ -354,7 +354,7 @@ class ZerodhaAutomatedLogin:
                     logger.info("2FA continue button clicked")
                     
                     # Wait for page transition
-                    time.sleep(3)
+                    time.sleep(1.5)  # Reduced from 3 to 1.5 seconds
                     
                     # Check if we moved to next page (success) or still on TOTP page (retry needed)
                     current_url = self.driver.current_url
@@ -365,13 +365,13 @@ class ZerodhaAutomatedLogin:
                         logger.warning(f"Still on 2FA page (attempt {attempt + 1}), URL: {current_url}")
                         if attempt < max_totp_attempts - 1:
                             logger.info("TOTP may be incorrect or expired, generating new one...")
-                            time.sleep(2)  # Wait before retry
+                            time.sleep(1)  # Reduced from 2 to 1 second
                             continue
                     
                 except Exception as e:
                     logger.error(f"TOTP attempt {attempt + 1} failed: {e}")
                     if attempt < max_totp_attempts - 1:
-                        time.sleep(2)  # Wait before retry
+                        time.sleep(1)  # Reduced from 2 to 1 second
                         continue
                     return False
             
@@ -552,13 +552,13 @@ class ZerodhaAutomatedLogin:
             
             # Handle 2FA
             logger.info("Waiting for 2FA page...")
-            time.sleep(8)  # Increased wait for page transition
+            time.sleep(4)  # Reduced from 8 to 4 seconds
             if not self._handle_2fa():
                 logger.warning("2FA handling failed, continuing to PIN check...")
             
             # Handle PIN (if required)
             logger.info("Checking for PIN page...")
-            time.sleep(5)  # Increased wait for page transition
+            time.sleep(2.5)  # Reduced from 5 to 2.5 seconds
             if not self._handle_pin():
                 logger.warning("PIN handling failed, continuing to callback check...")
             
