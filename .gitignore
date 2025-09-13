@@ -46,11 +46,21 @@ logs/
 *.log
 
 # Data files
-data/
+data/auth_token.json
 *.csv
-*.json
 *.db
 *.sqlite
+
+# Keep data directory structure but ignore sensitive files
+data/
+!data/.gitkeep
+
+# Debug files
+*.png
+*.jpg
+*_debug.*
+callback_timeout_debug.*
+totp_page_debug.*
 
 # Jupyter Notebooks
 .ipynb_checkpoints/
@@ -59,3 +69,8 @@ data/
 .coverage
 .pytest_cache/
 htmlcov/
+
+# Temporary files
+*.tmp
+*.temp
+.DS_Store
