@@ -1,0 +1,19 @@
+{
+  "ticker_symbol": "NIFTY",
+  "strike_difference": 50,
+  "strikes_above_atm": 3,
+  "strikes_below_atm": 3,
+  "refresh_interval_seconds": 10,
+  "window_title": "Live Option Chain - Zerodha",
+  "window_width": 1200,
+  "window_height": 600,
+  "colors": {
+    "atm_background": "#E6F3FF",
+    "itm_text": "#CC0000",
+    "otm_text": "#008000",
+    "call_oi_bar": "#4CAF50",
+    "put_oi_bar": "#FF5722",
+    "header_background": "#2196F3",
+    "header_text": "#FFFFFF"
+  }
+}
